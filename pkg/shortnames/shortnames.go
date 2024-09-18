@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/charmbracelet/huh"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
-	"github.com/manifoldco/promptui"
 	"github.com/opencontainers/go-digest"
 	"golang.org/x/exp/slices"
 	"golang.org/x/term"
@@ -369,20 +369,17 @@ func Resolve(ctx *types.SystemContext, name string) (*Resolved, error) {
 
 	// We have a TTY, and can prompt the user with a selection of all
 	// possible candidates.
-	strCandidates := []string{}
+	strCandidates := []huh.Option[string]{}
 	for _, candidate := range resolved.PullCandidates {
-		strCandidates = append(strCandidates, candidate.Value.String())
+		strCandidates = append(strCandidates, huh.NewOption(candidate.Value.String(), candidate.Value.String()))
 	}
-	prompt := promptui.Select{
-		Label:    "Please select an image",
-		Items:    strCandidates,
-		HideHelp: true, // do not show navigation help
-	}
-
-	_, selection, err := prompt.Run()
-	if err != nil {
-		return nil, err
-	}
+	var selection string
+	huh.NewSelect[string]().
+		Title("Pick a country.").
+		Options(
+			strCandidates...,
+		).
+		Value(&selection)
 
 	named, err := reference.ParseNormalizedNamed(selection)
 	if err != nil {
